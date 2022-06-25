@@ -67,7 +67,8 @@ namespace SuperWAV
         UInt16 bytesPerSample;
         UInt64 dataLengthInTicks;
 
-        public UInt64 DataLengthInTicks {
+        public UInt64 DataLengthInTicks
+        {
             get
             {
                 return dataLengthInTicks;
@@ -118,11 +119,11 @@ namespace SuperWAV
 
             bytesPerSample = (UInt16)(wavInfo.bitsPerSample / 8U);
             dataLengthInTicks = wavInfo.dataLength / wavInfo.bytesPerTick;
-            
+
         }
 
         // Constructor for writing
-        public SuperWAV(string path, WavFormat wavFormatForWritingA, UInt32 sampleRateA, UInt16 channelCountA, AudioFormat audioFormatA, UInt16 bitsPerSampleA,UInt64 initialDataLengthInTicks = 0)
+        public SuperWAV(string path, WavFormat wavFormatForWritingA, UInt32 sampleRateA, UInt16 channelCountA, AudioFormat audioFormatA, UInt16 bitsPerSampleA, UInt64 initialDataLengthInTicks = 0)
         {
             openMode = OpenMode.CREATE_FOR_READ_WRITE;
 
@@ -130,7 +131,7 @@ namespace SuperWAV
             br = new BinaryReader(fs);
             bw = new BinaryWriter(fs);
 
-            bytesPerSample = (UInt16)( bitsPerSampleA / 8);
+            bytesPerSample = (UInt16)(bitsPerSampleA / 8);
             dataLengthInTicks = initialDataLengthInTicks;
 
             wavInfo.sampleRate = sampleRateA;
@@ -138,12 +139,12 @@ namespace SuperWAV
             wavInfo.audioFormat = audioFormatA;
             wavInfo.bitsPerSample = bitsPerSampleA;
             wavInfo.bytesPerTick = (UInt16)(bytesPerSample * channelCountA);
-            wavInfo.dataLength = initialDataLengthInTicks* wavInfo.bytesPerTick;
+            wavInfo.dataLength = initialDataLengthInTicks * wavInfo.bytesPerTick;
             wavInfo.byteRate = wavInfo.sampleRate * wavInfo.bytesPerTick;
 
             wavFormat = wavFormatForWritingA;
 
-            writeFileHusk(wavFormatForWritingA,ref wavInfo);
+            writeFileHusk(wavFormatForWritingA, ref wavInfo);
 
         }
 
@@ -155,18 +156,20 @@ namespace SuperWAV
             if (openMode == OpenMode.OPEN_FOR_READ)
             {
                 throw new Exception("Trying to manipulate file that was opened for reading only!");
-            } else if (openMode == OpenMode.CREATE_OR_OPEN_FOR_READ_WRITE)
+            }
+            else if (openMode == OpenMode.CREATE_OR_OPEN_FOR_READ_WRITE)
             {
                 throw new Exception("Modifying existing files is not yet implemented.");
-            } else if (openMode == OpenMode.CREATE_FOR_READ_WRITE)
+            }
+            else if (openMode == OpenMode.CREATE_FOR_READ_WRITE)
             {
-                if(wavFormat == WavFormat.WAVE)
+                if (wavFormat == WavFormat.WAVE)
                 {
                     if (requiredDataSizeInTicks > dataLengthInTicks)
                     {
                         wavInfo.dataLength = requiredDataSizeInTicks * wavInfo.bytesPerTick;
 
-                        if(wavInfo.dataLength > UInt32.MaxValue)
+                        if (wavInfo.dataLength > UInt32.MaxValue)
                         {
                             throw new Exception("Trying to allocate more than 4GB of data in traditional wav file.");
                         }
@@ -176,8 +179,8 @@ namespace SuperWAV
                         bw.Write((byte)0);
                         Int64 currentPosition = bw.BaseStream.Position;
                         bw.Seek(4, SeekOrigin.Begin);
-                        bw.Write((UInt32)currentPosition-8);  // Check if -8 is actually correct
-                        bw.BaseStream.Seek((Int64)wavInfo.dataOffset-(Int64)4, SeekOrigin.Begin);
+                        bw.Write((UInt32)currentPosition - 8);  // Check if -8 is actually correct
+                        bw.BaseStream.Seek((Int64)wavInfo.dataOffset - (Int64)4, SeekOrigin.Begin);
                         bw.Write((UInt32)wavInfo.dataLength);
                         dataLengthInTicks = requiredDataSizeInTicks;
                     }
@@ -192,7 +195,7 @@ namespace SuperWAV
                         bw.BaseStream.Seek((Int64)wavInfo.dataLength /*-1*/, SeekOrigin.Current);
                         bw.Write((byte)0);
                         Int64 currentPosition = bw.BaseStream.Position;
-                        bw.Seek(4+12, SeekOrigin.Begin);
+                        bw.Seek(4 + 12, SeekOrigin.Begin);
                         bw.Write((UInt64)currentPosition);
                         bw.BaseStream.Seek((Int64)wavInfo.dataOffset - (Int64)8, SeekOrigin.Begin);
                         bw.Write((UInt64)wavInfo.dataLength + WAVE64_SIZE_DIFFERENCE);
@@ -212,15 +215,16 @@ namespace SuperWAV
         }
 
         // Write the bare minimum for a working file.
-        private void writeFileHusk(WavFormat wavFormatA,ref WavInfo wavInfoA)
+        private void writeFileHusk(WavFormat wavFormatA, ref WavInfo wavInfoA)
         {
             checkClosed();
 
-            if (openMode == OpenMode.CREATE_FOR_READ_WRITE) { 
+            if (openMode == OpenMode.CREATE_FOR_READ_WRITE)
+            {
 
-                if(wavFormatA == WavFormat.WAVE)
+                if (wavFormatA == WavFormat.WAVE)
                 {
-                    bw.Seek(0,SeekOrigin.Begin);
+                    bw.Seek(0, SeekOrigin.Begin);
                     bw.Write("RIFF".ToCharArray());
                     bw.Write((UInt32)0);
                     bw.Write("WAVE".ToCharArray());
@@ -239,11 +243,12 @@ namespace SuperWAV
                     bw.Write((byte)0);
                     Int64 currentPosition = bw.BaseStream.Position;
                     bw.Seek(4, SeekOrigin.Begin);
-                    bw.Write((UInt32)currentPosition-8); // TODO Check if -8 is actually correct
+                    bw.Write((UInt32)currentPosition - 8); // TODO Check if -8 is actually correct
 
 
 
-                } else if(wavFormat == WavFormat.WAVE64)
+                }
+                else if (wavFormat == WavFormat.WAVE64)
                 {
 
 
@@ -255,7 +260,7 @@ namespace SuperWAV
                     bw.Write(WAVE64_GUIDFOURCC_LAST12);
                     bw.Write("fmt ".ToCharArray());
                     bw.Write(WAVE64_GUIDFOURCC_LAST12);
-                    bw.Write((UInt64)(16+ WAVE64_SIZE_DIFFERENCE));
+                    bw.Write((UInt64)(16 + WAVE64_SIZE_DIFFERENCE));
                     bw.Write((UInt16)wavInfoA.audioFormat);
                     bw.Write((UInt16)wavInfoA.channelCount);
                     bw.Write((UInt32)wavInfoA.sampleRate);
@@ -269,16 +274,19 @@ namespace SuperWAV
                     bw.BaseStream.Seek((Int64)wavInfoA.dataLength /*-1*/, SeekOrigin.Current);
                     bw.Write((byte)0);
                     Int64 currentPosition = bw.BaseStream.Position;
-                    bw.Seek(4+12, SeekOrigin.Begin);
+                    bw.Seek(4 + 12, SeekOrigin.Begin);
                     bw.Write((UInt64)currentPosition);
-                } else if(wavFormat == WavFormat.RF64)
+                }
+                else if (wavFormat == WavFormat.RF64)
                 {
                     throw new Exception("Writing RF64 is not yet implemented.");
-                } else
-                {
-                    throw new Exception("Whut? "+wavFormat+"? What do you mean by "+wavFormat+"?");
                 }
-            } else
+                else
+                {
+                    throw new Exception("Whut? " + wavFormat + "? What do you mean by " + wavFormat + "?");
+                }
+            }
+            else
             {
                 throw new Exception("Trying to initialize an already existing file! Don't do that!");
             }
@@ -290,15 +298,15 @@ namespace SuperWAV
         {
             checkClosed();
 
-            float[] retVal = new float[wavInfo.channelCount*dataLengthInTicks];
+            float[] retVal = new float[wavInfo.channelCount * dataLengthInTicks];
             double[] tmp;
-            for (UInt64 i=0; i<dataLengthInTicks;i++)
+            for (UInt64 i = 0; i < dataLengthInTicks; i++)
             {
                 tmp = this[i];
-                for(uint c = 0; c < wavInfo.channelCount; c++)
+                for (uint c = 0; c < wavInfo.channelCount; c++)
                 {
 
-                    retVal[i*wavInfo.channelCount+c] = (float)tmp[c];
+                    retVal[i * wavInfo.channelCount + c] = (float)tmp[c];
                 }
             }
             return retVal;
@@ -313,15 +321,15 @@ namespace SuperWAV
             checkClosed();
 
             UInt64 ticksToServe = (1 + endIndex - startIndex);
-            float[] retVal = new float[wavInfo.channelCount* ticksToServe];
+            float[] retVal = new float[wavInfo.channelCount * ticksToServe];
             double[] tmp;
-            for (UInt64 i=0; i< ticksToServe; i++)
+            for (UInt64 i = 0; i < ticksToServe; i++)
             {
-                tmp = this[i+startIndex];
-                for(uint c = 0; c < wavInfo.channelCount; c++)
+                tmp = this[i + startIndex];
+                for (uint c = 0; c < wavInfo.channelCount; c++)
                 {
 
-                    retVal[i*wavInfo.channelCount+c] = (float)tmp[c];
+                    retVal[i * wavInfo.channelCount + c] = (float)tmp[c];
                 }
             }
             return retVal;
@@ -340,8 +348,20 @@ namespace SuperWAV
             UInt64 firstByteToServe = startIndex * wavInfo.bytesPerTick;
             UInt64 firstByteToServeAbsolute = firstByteToServe + wavInfo.dataOffset;
 
-            br.BaseStream.Seek((Int64)firstByteToServeAbsolute,SeekOrigin.Begin);
+            br.BaseStream.Seek((Int64)firstByteToServeAbsolute, SeekOrigin.Begin);
             byte[] dataAsBytes = br.ReadBytes((int)bytesToServe);
+
+            if((ulong)dataAsBytes.Length < bytesToServe) // In case an uncareful application (wink wink) tries to read past the end of the file
+            {
+                if (dataAsBytes.Length == 0)
+                {
+                    return new float[0]; // Signal to the caller that he's way out of his depth
+                }
+                else
+                {
+                    bytesToServe = (ulong)(dataAsBytes.Length - dataAsBytes.Length% wavInfo.bytesPerTick); // If there's any data there at the end that isn't a multiple of bytespertick, yeet it
+                }
+            }
 
             UInt64 tmpNumber;
 
@@ -354,7 +374,7 @@ namespace SuperWAV
                     }
                     break;
                 case 16: // TESTED
-                    Int16[] tmp0 = new Int16[bytesToServe/2];
+                    Int16[] tmp0 = new Int16[bytesToServe / 2];
                     Buffer.BlockCopy(dataAsBytes, 0, tmp0, 0, (int)bytesToServe);
                     tmpNumber = (UInt64)tmp0.Length;
                     for (UInt64 i = 0; i < tmpNumber; i++)
@@ -365,7 +385,7 @@ namespace SuperWAV
                 case 32:// UNTESTED
                     if (wavInfo.audioFormat == AudioFormat.FLOAT) // Most straightforward!
                     {
-                        Buffer.BlockCopy(dataAsBytes, 0, retVal, 0, (int)bytesToServe); 
+                        Buffer.BlockCopy(dataAsBytes, 0, retVal, 0, (int)bytesToServe);
                     }
                     else
                     { // UNTESTED
@@ -379,7 +399,7 @@ namespace SuperWAV
                     }
                     break;
                 case 24:// UNTESTED
-                    Int32[] singleOne = new Int32[1] { 0};
+                    Int32[] singleOne = new Int32[1] { 0 };
                     tmpNumber = bytesToServe / 3;
                     for (UInt64 i = 0; i < tmpNumber; i++)
                     {
@@ -394,7 +414,7 @@ namespace SuperWAV
         }
 
         [Obsolete("This is very slow. Use writeFloatArrayFast instead")]
-        public void writeFloatArray(float [] dataToAdd, UInt64 offset=0)
+        public void writeFloatArray(float[] dataToAdd, UInt64 offset = 0)
         {
             checkClosed();
 
@@ -408,10 +428,10 @@ namespace SuperWAV
                 {
                     tmp[c] = dataToAdd[i * wavInfo.channelCount + c];
                 }
-                this[offset+i] = tmp;
+                this[offset + i] = tmp;
             }
         }
-        public void writeFloatArrayFast(float [] dataToAdd, UInt64 offset=0)
+        public void writeFloatArrayFast(float[] dataToAdd, UInt64 offset = 0)
         {
             checkClosed();
 
@@ -426,7 +446,7 @@ namespace SuperWAV
             else if (openMode == OpenMode.CREATE_FOR_READ_WRITE)
             {
                 UInt64 dataToAddLength = (UInt64)dataToAdd.Length;
-                checkAndIncreaseDataSize(dataToAddLength/wavInfo.channelCount + offset);
+                checkAndIncreaseDataSize(dataToAddLength / wavInfo.channelCount + offset);
 
                 UInt64 dataToAddLengthInTicks = (UInt64)dataToAdd.Length / (UInt64)wavInfo.channelCount;
                 UInt64 bytesToWrite = dataToAddLengthInTicks * wavInfo.bytesPerTick;
@@ -444,7 +464,7 @@ namespace SuperWAV
                         }
                         break;
                     case 16: // UNTESTED
-                        Int16[] tmp0 = new Int16[writeBuffer.Length/2];
+                        Int16[] tmp0 = new Int16[writeBuffer.Length / 2];
                         for (UInt64 i = 0; i < dataToAddLength; i++)
                         {
                             tmp0[i] = (Int16)(Math.Min(Int16.MaxValue, Math.Max(Int16.MinValue, dataToAdd[i] * INT16_MINVAL_ABS_DOUBLE)));
@@ -477,7 +497,7 @@ namespace SuperWAV
                 }
 
                 bw.BaseStream.Seek((Int64)firstByteToWriteAbsolute, SeekOrigin.Begin);
-                bw.Write(writeBuffer,0,(int)bytesToWrite);
+                bw.Write(writeBuffer, 0, (int)bytesToWrite);
             }
 
         }
@@ -509,21 +529,21 @@ namespace SuperWAV
                 switch (wavInfo.bitsPerSample)
                 {
                     case 8:
-                        for(int i = 0; i < wavInfo.channelCount; i++)
+                        for (int i = 0; i < wavInfo.channelCount; i++)
                         {
-                            retVal[i] = (double)(((double)readBuffer[i] - 128.0)/INT8_MINVAL_ABS_DOUBLE);
+                            retVal[i] = (double)(((double)readBuffer[i] - 128.0) / INT8_MINVAL_ABS_DOUBLE);
                         }
                         break;
                     case 16:
                         Int16[] tmp0 = new Int16[wavInfo.channelCount];
-                        Buffer.BlockCopy(readBuffer,0,tmp0,0,wavInfo.bytesPerTick);
+                        Buffer.BlockCopy(readBuffer, 0, tmp0, 0, wavInfo.bytesPerTick);
                         for (int i = 0; i < wavInfo.channelCount; i++)
                         {
                             retVal[i] = (double)((double)tmp0[i] / INT16_MINVAL_ABS_DOUBLE);
                         }
                         break;
                     case 32:
-                        if(wavInfo.audioFormat == AudioFormat.FLOAT)
+                        if (wavInfo.audioFormat == AudioFormat.FLOAT)
                         {
                             float[] tmp1 = new float[wavInfo.channelCount];
                             Buffer.BlockCopy(readBuffer, 0, tmp1, 0, wavInfo.bytesPerTick);
@@ -531,7 +551,8 @@ namespace SuperWAV
                             {
                                 retVal[i] = (double)tmp1[i];
                             }
-                        } else
+                        }
+                        else
                         {
                             Int32[] tmp2 = new Int32[wavInfo.channelCount];
                             Buffer.BlockCopy(readBuffer, 0, tmp2, 0, wavInfo.bytesPerTick);
@@ -550,7 +571,7 @@ namespace SuperWAV
                         Int32[] singleOne = new Int32[1] { 0 }; // We just interpret as Int32 and ignore one byte.
                         for (int i = 0; i < wavInfo.channelCount; i++)
                         {
-                            Buffer.BlockCopy(readBuffer, i*3, singleOne, 1, 3);
+                            Buffer.BlockCopy(readBuffer, i * 3, singleOne, 1, 3);
                             retVal[i] = (double)((double)singleOne[0] / INT32_MINVAL_ABS_DOUBLE);
                         }
                         break;
@@ -587,14 +608,14 @@ namespace SuperWAV
                     UInt64 startOffset = index * wavInfo.bytesPerTick;
                     //UInt64 endOffset = startOffset + wavInfo.bytesPerTick -1;
                     checkAndIncreaseDataSize(index);
-                    UInt64 startOffsetAbsolute = wavInfo.dataOffset+ startOffset;
+                    UInt64 startOffsetAbsolute = wavInfo.dataOffset + startOffset;
 
                     byte[] dataToWrite = new byte[wavInfo.bytesPerTick];
 
                     switch (wavInfo.bitsPerSample)
                     {
                         case 8:
-                            for(int i = 0; i < wavInfo.channelCount; i++)
+                            for (int i = 0; i < wavInfo.channelCount; i++)
                             {
                                 dataToWrite[i] = (byte)(Math.Min(sbyte.MaxValue, Math.Max(sbyte.MinValue, value[i] * INT8_MINVAL_ABS_DOUBLE)) + 128.0);
                             }
@@ -605,7 +626,7 @@ namespace SuperWAV
                             {
                                 tmp0[i] = (Int16)(Math.Min(Int16.MaxValue, Math.Max(Int16.MinValue, value[i] * INT16_MINVAL_ABS_DOUBLE)));
                             }
-                            Buffer.BlockCopy(tmp0,0,dataToWrite,0,dataToWrite.Length);
+                            Buffer.BlockCopy(tmp0, 0, dataToWrite, 0, dataToWrite.Length);
                             break;
                         case 32:
                             if (wavInfo.audioFormat == AudioFormat.FLOAT)
@@ -632,12 +653,12 @@ namespace SuperWAV
                             for (int i = 0; i < wavInfo.channelCount; i++)
                             {
                                 tmp3[0] = (Int32)(Math.Min(Int32.MaxValue, Math.Max(Int32.MinValue, value[i] * INT32_MINVAL_ABS_DOUBLE)));
-                                Buffer.BlockCopy(tmp3, 1, dataToWrite, i*3, 3);
+                                Buffer.BlockCopy(tmp3, 1, dataToWrite, i * 3, 3);
                             }
                             break;
                     }
 
-                    bw.BaseStream.Seek((Int64)startOffsetAbsolute,SeekOrigin.Begin);
+                    bw.BaseStream.Seek((Int64)startOffsetAbsolute, SeekOrigin.Begin);
                     bw.Write(dataToWrite);
                 }
             }
@@ -649,15 +670,16 @@ namespace SuperWAV
             checkClosed();
 
             ChunkInfo chunk = readChunk32(0);
-            if(chunk.name == "RIFF")
+            if (chunk.name == "RIFF")
             {
                 // Either Wave64 or normal WAV
                 chunk = readChunk32(12);
-                if(chunk.name == "FMT " && chunk.size >= 16)
+                if (chunk.name == "FMT " && chunk.size >= 16)
                 {
                     // Probably normal wav?
                     return WavFormat.WAVE;
-                } else 
+                }
+                else
                 {
                     chunk = readChunkWave64(40);
                     if (chunk.name == "FMT " && chunk.size >= 16 && chunk.isValidWave64LegacyRIFFCode)
@@ -666,7 +688,8 @@ namespace SuperWAV
                         return WavFormat.WAVE64;
                     }
                 }
-            } else if(chunk.name == "RF64")
+            }
+            else if (chunk.name == "RF64")
             {
                 chunk = readChunk32(12);
                 if (chunk.name == "DS64")
@@ -675,7 +698,7 @@ namespace SuperWAV
                     return WavFormat.RF64;
                 }
             }
-            
+
             // If nothing else returns something valid, we failed at detecting.
             return WavFormat.UNDEFINED_INVALID;
         }
@@ -686,7 +709,7 @@ namespace SuperWAV
             checkClosed();
 
             WavInfo retVal = new WavInfo();
-            if(wavFormat == WavFormat.WAVE)
+            if (wavFormat == WavFormat.WAVE)
             {
 
                 UInt64 fmtChunkLength = 0;
@@ -754,7 +777,8 @@ namespace SuperWAV
                 retVal.dataOffset = resultPosition + 8;
                 retVal.dataLength = chunk.size;
 
-            } else if (wavFormat == WavFormat.WAVE64) // Todo: respect 8 byte boundaries.
+            }
+            else if (wavFormat == WavFormat.WAVE64) // Todo: respect 8 byte boundaries.
             {
                 // find fmt chunk
                 ChunkInfo chunk = new ChunkInfo();
@@ -823,7 +847,7 @@ namespace SuperWAV
 
                 fmtChunkLength = chunk.size;
 
-                br.BaseStream.Seek((Int64)(resultPosition+(UInt64)8), SeekOrigin.Begin);
+                br.BaseStream.Seek((Int64)(resultPosition + (UInt64)8), SeekOrigin.Begin);
 
                 // read fmt chunk data, as usual
                 retVal.audioFormat = (AudioFormat)br.ReadUInt16();
@@ -836,7 +860,7 @@ namespace SuperWAV
                 // WAVE Extensible handling
                 if (retVal.audioFormat == AudioFormat.WAVE_FORMAT_EXTENSIBLE)
                 {
-                    if(fmtChunkLength > 16)
+                    if (fmtChunkLength > 16)
                     {
                         UInt16 restChunkLength = br.ReadUInt16(); // This is a guess!
                         if (restChunkLength >= 8)
@@ -846,16 +870,18 @@ namespace SuperWAV
                             retVal.audioFormat = (AudioFormat)br.ReadUInt16(); // Here we go.
                             // The rest of the fmt chunk is a GUID thingie, not interesting.
 
-                        } else
+                        }
+                        else
                         {
                             throw new Exception("Weird fmt chunk");
                         }
-                    } else
+                    }
+                    else
                     {
                         throw new Exception("Weird fmt chunk");
                     }
                 }
-                
+
 
 
                 // find data chunk
@@ -883,7 +909,7 @@ namespace SuperWAV
         {
             checkClosed();
 
-            br.BaseStream.Seek((Int64)position,SeekOrigin.Begin);
+            br.BaseStream.Seek((Int64)position, SeekOrigin.Begin);
             ChunkInfo retVal = new ChunkInfo();
             byte[] nameBytes = br.ReadBytes(4);
             retVal.name = Encoding.ASCII.GetString(nameBytes).ToUpper();
@@ -901,13 +927,13 @@ namespace SuperWAV
                 position = ((position / 8) + 1) * 8; // Need to remember that wave64 stuff always needs to be aligned on 8 byte boundaries!
             }*/ // Decided not to do that here because its too convenient and will introduce sneaky errors in the end ... better to catch it right in teh code.
 
-            br.BaseStream.Seek((Int64)position,SeekOrigin.Begin);
+            br.BaseStream.Seek((Int64)position, SeekOrigin.Begin);
             ChunkInfo retVal = new ChunkInfo();
             byte[] nameBytes = br.ReadBytes(4);
             byte[] fourCC = br.ReadBytes(12);
             retVal.isValidWave64LegacyRIFFCode = EqualBytesLongUnrolled(fourCC, WAVE64_GUIDFOURCC_LAST12);
             retVal.name = Encoding.ASCII.GetString(nameBytes).ToUpper();
-            retVal.size = br.ReadUInt64()-(UInt64)24U;
+            retVal.size = br.ReadUInt64() - (UInt64)24U;
             return retVal;
         }
 
