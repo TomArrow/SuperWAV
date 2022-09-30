@@ -163,7 +163,31 @@ namespace SuperWAV
             }
             else if (openMode == OpenMode.CREATE_FOR_READ_WRITE)
             {
-                if (wavFormat == WavFormat.WAVE)
+                if (wavFormat == WavFormat.CUBASE_BIGFILE)
+                {
+                    if (requiredDataSizeInTicks > dataLengthInTicks)
+                    {
+                        wavInfo.dataLength = requiredDataSizeInTicks * wavInfo.bytesPerTick;
+
+                        // Cubase longfiles can be bigger.
+                        //if (wavInfo.dataLength > UInt32.MaxValue)
+                        //{
+                        //    throw new Exception("Trying to allocate more than 4GB of data in traditional wav file.");
+                        //}
+
+                        bw.BaseStream.Seek((Int64)wavInfo.dataOffset, SeekOrigin.Begin);
+                        bw.BaseStream.Seek((Int64)wavInfo.dataLength /*-1*/, SeekOrigin.Current);
+                        bw.Write((byte)0);
+                        //Int64 currentPosition = bw.BaseStream.Position;
+
+                        // We do not write the data length into a Cubase longfile
+                        //bw.Seek(4, SeekOrigin.Begin);
+                        //bw.Write((UInt32)currentPosition - 8);  // Check if -8 is actually correct
+                        //bw.BaseStream.Seek((Int64)wavInfo.dataOffset - (Int64)4, SeekOrigin.Begin);
+                        //bw.Write((UInt32)wavInfo.dataLength);
+                        dataLengthInTicks = requiredDataSizeInTicks;
+                    }
+                } else if (wavFormat == WavFormat.WAVE)
                 {
                     if (requiredDataSizeInTicks > dataLengthInTicks)
                     {
@@ -244,6 +268,35 @@ namespace SuperWAV
                     Int64 currentPosition = bw.BaseStream.Position;
                     bw.Seek(4, SeekOrigin.Begin);
                     bw.Write((UInt32)currentPosition - 8); // TODO Check if -8 is actually correct
+
+
+
+                }
+                else if (wavFormatA == WavFormat.CUBASE_BIGFILE)
+                {
+                    bw.Seek(0, SeekOrigin.Begin);
+                    bw.Write("RIFF".ToCharArray());
+                    bw.Write((UInt32)60); // Cubase longfile specific
+                    bw.Write("WAVE".ToCharArray());
+                    bw.Write("fmt ".ToCharArray());
+                    bw.Write((UInt32)16);
+                    bw.Write((UInt16)wavInfoA.audioFormat);
+                    bw.Write((UInt16)wavInfoA.channelCount);
+                    bw.Write((UInt32)wavInfoA.sampleRate);
+                    bw.Write((UInt32)wavInfoA.byteRate);
+                    bw.Write((UInt16)wavInfoA.bytesPerTick);
+                    bw.Write((UInt16)wavInfoA.bitsPerSample);
+                    bw.Write("data".ToCharArray());
+                    //bw.Write((UInt32)wavInfoA.dataLength);
+                    bw.Write((UInt32)0); // Cubase longfile specific. We do not define the length, cubase simply reads to the end.
+                    wavInfoA.dataOffset = (UInt64)bw.BaseStream.Position;
+                    bw.BaseStream.Seek((Int64)wavInfoA.dataLength/*-1*/, SeekOrigin.Current);
+                    bw.Write((byte)0);
+                    Int64 currentPosition = bw.BaseStream.Position;
+
+                    //We don't do this in a Cubase longfile:
+                    //bw.Seek(4, SeekOrigin.Begin);
+                    //bw.Write((UInt32)currentPosition - 8); // TODO Check if -8 is actually correct
 
 
 
@@ -780,6 +833,8 @@ namespace SuperWAV
             }
             else if (wavFormat == WavFormat.WAVE64) // Todo: respect 8 byte boundaries.
             {
+                UInt64 fmtChunkLength = 0;
+
                 // find fmt chunk
                 ChunkInfo chunk = new ChunkInfo();
                 UInt64 currentPosition = 40;
@@ -796,6 +851,8 @@ namespace SuperWAV
 
                 } while (chunk.name != "FMT " || !chunk.isValidWave64LegacyRIFFCode);
 
+                fmtChunkLength = chunk.size;
+
                 br.BaseStream.Seek((Int64)(resultPosition + (UInt64)24), SeekOrigin.Begin);
 
                 //br.BaseStream.Seek(64, SeekOrigin.Begin);
@@ -806,6 +863,30 @@ namespace SuperWAV
                 retVal.bytesPerTick = br.ReadUInt16();
                 retVal.bitsPerSample = br.ReadUInt16();
 
+                // WAVE Extensible handling (Some applications save wave64 files like that, didn't know that either)
+                if (retVal.audioFormat == AudioFormat.WAVE_FORMAT_EXTENSIBLE)
+                {
+                    if (fmtChunkLength > 16)
+                    {
+                        UInt16 restChunkLength = br.ReadUInt16(); // This is a guess!
+                        if (restChunkLength >= 8)
+                        {
+                            _ = br.ReadUInt16(); // This appears to be once again bits per sample.
+                            _ = br.ReadUInt32(); // Channel mask. Irrelevant for us.
+                            retVal.audioFormat = (AudioFormat)br.ReadUInt16(); // Here we go.
+                            // The rest of the fmt chunk is a GUID thingie, not interesting.
+
+                        }
+                        else
+                        {
+                            throw new Exception("Weird fmt chunk");
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("Weird fmt chunk");
+                    }
+                }
 
                 // find data chunk
                 currentPosition = 40;
