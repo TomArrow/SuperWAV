@@ -566,6 +566,12 @@ namespace SuperWAV
             return wavInfo;
         }
 
+        public WavFormat getWavFormat()
+        {
+            checkClosed();
+            return wavFormat;
+        }
+
 
         // test: (UInt32)(((double)(UInt32.MaxValue - 2)/ (double)UInt32.MaxValue)*(double)UInt32.MaxValue)
         public double[] this[UInt64 index]
