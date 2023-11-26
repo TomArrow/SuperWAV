@@ -16,7 +16,8 @@ namespace SuperWAV
             WAVE,
             WAVE64,
             RF64,
-            CUBASE_BIGFILE
+            CUBASE_BIGFILE,
+            BROADCAST_WAVE,
         }
 
         WavFormat wavFormat = WavFormat.UNDEFINED_INVALID;
@@ -85,7 +86,7 @@ namespace SuperWAV
         OpenMode openMode = OpenMode.OPEN_FOR_READ;
 
         // Constructor for reading
-        public SuperWAV(string path)
+        public SuperWAV(string path, bool checkSizeIntegerWrap = true)
         {
             openMode = OpenMode.OPEN_FOR_READ;
 
@@ -95,12 +96,12 @@ namespace SuperWAV
 
             wavFormat = detectWavFormat();
 
-            if (wavFormat != WavFormat.WAVE && wavFormat != WavFormat.WAVE64 && wavFormat != WavFormat.RF64)
+            if (wavFormat != WavFormat.WAVE && wavFormat != WavFormat.WAVE64 && wavFormat != WavFormat.RF64 && wavFormat != WavFormat.BROADCAST_WAVE)
             {
-                throw new Exception("Only normal WAV and WAVE64 and RF64 is supported so far, not anything else.");
+                throw new Exception("Only normal WAV and WAVE64 and RF64 and BROADCAST_WAVE is supported so far, not anything else.");
             }
 
-            wavInfo = readWavInfo();
+            wavInfo = readWavInfo(checkSizeIntegerWrap);
 
             if (wavInfo.audioFormat != AudioFormat.LPCM && wavInfo.audioFormat != AudioFormat.FLOAT)
             {
@@ -333,6 +334,10 @@ namespace SuperWAV
                 else if (wavFormat == WavFormat.RF64)
                 {
                     throw new Exception("Writing RF64 is not yet implemented.");
+                }
+                else if (wavFormat == WavFormat.BROADCAST_WAVE)
+                {
+                    throw new Exception("Writing BROADCAST_WAVE is not yet implemented.");
                 }
                 else
                 {
@@ -723,6 +728,7 @@ namespace SuperWAV
             checkClosed();
 
             ChunkInfo chunk = readChunk32(0);
+
             if (chunk.name == "RIFF")
             {
                 // Either Wave64 or normal WAV
@@ -731,6 +737,11 @@ namespace SuperWAV
                 {
                     // Probably normal wav?
                     return WavFormat.WAVE;
+                }
+                else if (chunk.name == "BEXT" && chunk.size >= 602)
+                {
+                    // Probably normal wav?
+                    return WavFormat.BROADCAST_WAVE;
                 }
                 else
                 {
@@ -757,12 +768,12 @@ namespace SuperWAV
         }
 
 
-        private WavInfo readWavInfo()
+        private WavInfo readWavInfo(bool checkSizeIntegerWrap)
         {
             checkClosed();
 
             WavInfo retVal = new WavInfo();
-            if (wavFormat == WavFormat.WAVE)
+            if (wavFormat == WavFormat.WAVE || wavFormat == WavFormat.BROADCAST_WAVE)
             {
 
                 UInt64 fmtChunkLength = 0;
@@ -829,6 +840,12 @@ namespace SuperWAV
 
                 retVal.dataOffset = resultPosition + 8;
                 retVal.dataLength = chunk.size;
+
+                while(checkSizeIntegerWrap && (retVal.dataOffset+retVal.dataLength+(UInt64)UInt32.MaxValue+1L) <= (UInt64)br.BaseStream.Length) 
+                {
+                    // Some applications naively write a 64 bit value into the 32 bit place. So we can actually restore the real value with a slight assumption that there isn't 4 GB of non-audio data.
+                    retVal.dataLength += (UInt64)UInt32.MaxValue + 1L;
+                }
 
             }
             else if (wavFormat == WavFormat.WAVE64) // Todo: respect 8 byte boundaries.
