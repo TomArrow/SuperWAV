@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SuperWAV
 {
-    class SuperWAV : IDisposable
+    public class SuperWAV : IDisposable
     {
 
         public enum WavFormat
